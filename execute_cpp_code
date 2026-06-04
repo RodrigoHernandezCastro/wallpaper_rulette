@@ -3,4 +3,4 @@ cmake --build build --config Debug && build\bin\Debug\esquizoPNG.exe
 
 -- Linux --
 nix develop
-rm -rf build && cmake -S . -B build && cmake --build build && ./build/bin/wallpaper_rulette
+rm -rf build && cmake -S . -B build && cmake --build build && ./build/bin/wallpaper_rulette 5 /home/randy/Imagenes/Wallpapers/ waypaper

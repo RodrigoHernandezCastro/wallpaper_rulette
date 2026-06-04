@@ -24,13 +24,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-  ${CMAKE_SOURCE_DIR}/src/libraries
+target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+  target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 message(STATUS "Proyecto: ${PROJECT_NAME} v${PROJECT_VERSION}")

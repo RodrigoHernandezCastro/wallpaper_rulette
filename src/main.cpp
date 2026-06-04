@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include "libraries/ini.h"
 #include <vector>
 #include <cstdlib>
 #include <filesystem>
@@ -15,8 +14,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <signal.h>
-bool running = true;
+#include <string>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
+#include <limits.h>
 
+bool running = true;
+bool service_running = false;
 void signalHandler(int signum) {
     running = false;
 }
@@ -44,50 +49,89 @@ void daemonize() {
     close(STDERR_FILENO);
 }
 
-int main(){
-    daemonize();
+struct ProcessInfo {
+    int pid;
+    std::string name;
+};
 
+std::vector<ProcessInfo> find_processes_by_name(const std::string& target_name) {
+    std::vector<ProcessInfo> result;
+    for (const auto& entry : std::filesystem::directory_iterator("/proc")){
+        if (!entry.is_directory()) continue;
+
+        std::string pid_str = entry.path().filename().string();
+        if (!std::all_of(pid_str.begin(), pid_str.end(), ::isdigit)) continue;
+
+        std::ifstream cmdline(entry.path() / "cmdline");
+        std::string first_arg;
+
+        if (std::getline(cmdline, first_arg, '\0')){
+            std::string exec_name = std::filesystem::path(first_arg).filename().string();
+
+            if (exec_name == target_name){
+                result.push_back({std::stoi(pid_str), target_name});
+            }
+        }
+    }
+    return result;
+}
+
+int main(int argc, const char * argv[]){
     signal(SIGTERM, signalHandler);
 
-    std::ofstream logfile("/var/log/myapp.log", std::ios_base::app);
-    logfile << "Service started." << std::endl;
+    const char* xdg_state_home = std::getenv("XDG_STATE_HOME");
+    if (!xdg_state_home) throw std::runtime_error("XDG_STATE_HOME not set");
 
-    const char* homeDir = std::getenv("HOME");
+    std::filesystem::path logDir  = std::filesystem::path(xdg_state_home) / "wallpaper_rulette";
+    std::filesystem::path logFile = logDir / "wallpaper_rulette.log";
+    std::filesystem::create_directories(logDir);
 
-    if(homeDir == nullptr){
-        std::cerr << "Error: The environment variable HOME is not defined" << std::endl;
+    std::ofstream fileStream(logFile);
+
+    std::ofstream log(logFile, std::ios::app);
+    log << "App started\n";
+
+    std::cout << "Logging to: " << logFile << "\n";
+
+    if (argc < 3) {
+        std::cout << "Usage: " << argv[0] << std::endl;
+        return 1;
     }
-
-    std::string configPath = std::string(homeDir) + "/.config/waypaper/config.ini";
-
-    mINI::INIFile file(configPath);
-    mINI::INIStructure ini;
 
     std::vector<std::string> extension_options = {".jpg", ".gif", ".png", ".jpeg"};
     std::vector<std::string> file_names;
     std::vector<int> random_numbers;
-    std::string location;
-    std::string wallpapers;
-    std::string location_path;
+    std::string time = argv[1];
+    std::string locpath = argv[2];
+    std::string backend = argv[3];
     std::string wallpapers_path;
+    std::string name_process = "wallpaper_rulette";
+    int time_seconds = std::stoi(time);
 
-    if (file.read(ini)) {
-        location    = ini["Settings"]["folder"];
-        wallpapers  = ini["Settings"]["wallpaper"];
-        if (!location.empty() && location.front() == '~'){
-            location.erase(0, 1);
+    std::vector<ProcessInfo> find_processes_by_name(const std::string& name_process);
+
+    auto processes = find_processes_by_name(name_process);
+    pid_t current_pid = getpid();
+    log << "Found processes: " << processes.size() << std::endl;
+    for (const auto& proc : processes) {
+        if (proc.pid == current_pid) {
+            continue;
         }
-        location_path = std::string(homeDir) + location;
-        wallpapers_path = std::string(homeDir) + wallpapers;
-        std::cout << "Location: " << location << std::endl;
-        std::cout << "Location wallpaper: " << wallpapers << std::endl;
-        std::cout << location_path << std::endl;
-    } else {
-        std::cerr << "Error: Could not open configuration file." << std::endl;
-        return 1;
+        log << "[PID:  " << proc.pid  << "  ] " << std::endl;
+        log << "[Name: " << proc.name << "  ] " << std::endl;
+
+        if (kill(proc.pid, SIGKILL) == 0) {
+            log << "Successfully killed leftover process." << std::endl;
+        } else {
+            log << "Failed to kill process. Error: " << errno << std::endl;
+        }
     }
 
-    for (const auto& entry : std::filesystem::directory_iterator(location_path)) {
+    log << "Time: " << time << std::endl;
+    log << "locpath: " << locpath << std::endl;
+    log << "backend: " << backend << std::endl;
+
+    for (const auto& entry : std::filesystem::directory_iterator(locpath)) {
         std::filesystem::path ext = entry.path().extension();
         std::filesystem::path file_name = entry.path();
         if (std::find(extension_options.begin(), extension_options.end(), ext) == extension_options.end()) {
@@ -102,41 +146,58 @@ int main(){
     std::shuffle(indices.begin(), indices.end(), std::mt19937{std::random_device{}()});
     std::size_t idx = 0;
 
-    bool running = true;
-    if(location.front() == '~' && location.back() == '/'){
-        std::cout << "Nothing to do." << std::endl;
+    daemonize();
+
+    if (locpath.find(xdg_state_home)){
+        if (locpath.front() == '~'){
+            locpath.erase(0, 1);
+        }else {
+            log << "Doesn't have ~ symbol" << std::endl;
+        }
+    }else {
+        log << "Already have home implemented" << std::endl;
+    }
+
+    if (locpath.back() == '/'){
+        log << "Already have / symbol" << std::endl;
     }else{
-        location.insert(0, 1, '~');
-        location.push_back('/');
+        locpath.push_back('/');
     }
-    while(running){
-        std::cout << "Starting..." << std::endl;
+    if (service_running == true){
+        log << "Already executing process..." << std::endl;
+    }else{
+        while(running){
+            log << "Starting..." << std::endl;
 
-        std::this_thread::sleep_for(std::chrono::seconds(60));
+            std::this_thread::sleep_for(std::chrono::seconds(time_seconds));
 
-        std::cout << "Done!" << std::endl;
+            log << "Done!" << std::endl;
 
-        int pick = indices[idx];
+            int pick = indices[idx];
+            log << "picIdx: " << pick << std::endl;
+            wallpapers_path = locpath + file_names[pick];
+            log << "wallpapers_path: " << wallpapers_path << std::endl;
+            log << "time: " << time << " locpath: " << locpath << " backend: " << backend << std::endl;
 
-        wallpapers_path = location + file_names[pick];
-        ini["Settings"]["wallpaper"] = wallpapers_path;
+            if (backend == "awww"){
+                std::system(("awww img " + wallpapers_path).c_str());
+            }else if (backend == "swww"){
+                std::system(("swww img " + wallpapers_path).c_str());
+            }else if (backend == "hyprpaper"){
+                std::system(("hyprctl hyprpaper reload " + wallpapers_path).c_str());
+            }else if (backend == "waypaper"){
+                std::system(("waypaper --wallpaper " + wallpapers_path).c_str());
+            }
 
-        if (file.write(ini)) {
-            std::cout << "INI file written successfully!" << std::endl;
-        } else {
-            std::cerr << "Error: Failed to write INI file." << std::endl;
-            return 1;
-        }
-        std::system("waypaper --restore");
-
-        idx++;
-        if (idx >= indices.size()) {
-            std::shuffle(indices.begin(), indices.end(), std::mt19937{std::random_device{}()});
-            idx = 0;
+            idx++;
+            if (idx >= indices.size()) {
+                std::shuffle(indices.begin(), indices.end(), std::mt19937{std::random_device{}()});
+                idx = 0;
+            }
         }
     }
 
-    logfile << "Service stopped." << std::endl;
-    logfile.close();
+    log << "Service stopped." << std::endl;
+    fileStream.close();
     return 0;
 }
