@@ -10,8 +10,47 @@
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <fstream>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <signal.h>
+bool running = true;
+
+void signalHandler(int signum) {
+    running = false;
+}
+
+void daemonize() {
+    pid_t pid = fork();
+
+    if (pid < 0) exit(EXIT_FAILURE);
+    if (pid > 0) exit(EXIT_SUCCESS);
+
+    if (setsid() < 0) exit(EXIT_FAILURE);
+
+    signal(SIGCHLD, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
+
+    pid = fork();
+    if (pid < 0) exit(EXIT_FAILURE);
+    if (pid > 0) exit(EXIT_SUCCESS);
+
+    umask(0);
+    chdir("/");
+
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+}
 
 int main(){
+    daemonize();
+
+    signal(SIGTERM, signalHandler);
+
+    std::ofstream logfile("/var/log/myapp.log", std::ios_base::app);
+    logfile << "Service started." << std::endl;
 
     const char* homeDir = std::getenv("HOME");
 
@@ -73,7 +112,7 @@ int main(){
     while(running){
         std::cout << "Starting..." << std::endl;
 
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        std::this_thread::sleep_for(std::chrono::seconds(60));
 
         std::cout << "Done!" << std::endl;
 
@@ -96,5 +135,8 @@ int main(){
             idx = 0;
         }
     }
+
+    logfile << "Service stopped." << std::endl;
+    logfile.close();
     return 0;
 }
