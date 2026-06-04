@@ -1,3 +1,0 @@
-/home/randy/Desktop/cppProyects/wallpaper_rulette/build/CMakeFiles/wallpaper_rulette.dir
-/home/randy/Desktop/cppProyects/wallpaper_rulette/build/CMakeFiles/edit_cache.dir
-/home/randy/Desktop/cppProyects/wallpaper_rulette/build/CMakeFiles/rebuild_cache.dir
