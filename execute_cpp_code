@@ -1,0 +1,6 @@
+-- Windows --
+cmake --build build --config Debug && build\bin\Debug\esquizoPNG.exe
+
+-- Linux --
+nix develop
+rm -rf build && cmake -S . -B build && cmake --build build && ./build/bin/wallpaper_rulette
