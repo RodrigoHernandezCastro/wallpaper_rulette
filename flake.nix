@@ -23,15 +23,18 @@
         );
     in
     {
-      packages = forEachSupportedSystem ({ pkgs, system }: {
-        default = pkgs.stdenv.mkDerivation {
-          pname = "wallpaper_rulette";
-          version = "0.1.0";
-          src = ./.;
-          nativeBuildInputs = with pkgs; [ cmake ];
-          buildInputs = with pkgs; [ nlohmann_json ];
-        };
-      });
+      packages = forEachSupportedSystem (
+        { pkgs, system }:
+        {
+          default = pkgs.stdenv.mkDerivation {
+            pname = "wallpaper_rulette";
+            version = "1.0.0";
+            src = ./.;
+            nativeBuildInputs = with pkgs; [ cmake ];
+            buildInputs = with pkgs; [ nlohmann_json ];
+          };
+        }
+      );
 
       devShells = forEachSupportedSystem (
         { pkgs, system }:

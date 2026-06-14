@@ -97,7 +97,6 @@ int main(int argc, const char * argv[]){
         std::cout << "Usage: " << argv[0] << std::endl;
         return 1;
     }
-
     std::vector<std::string> extension_options = {".jpg", ".gif", ".png", ".jpeg"};
     std::vector<std::string> file_names;
     std::vector<int> random_numbers;
@@ -107,6 +106,10 @@ int main(int argc, const char * argv[]){
     std::string wallpapers_path;
     std::string name_process = "wallpaper_rulette";
     int time_seconds = std::stoi(time);
+
+    if (backend == "waypaper"){
+        std::system("waypaper");
+    }
 
     std::vector<ProcessInfo> find_processes_by_name(const std::string& name_process);
 
@@ -141,9 +144,13 @@ int main(int argc, const char * argv[]){
         }
     }
 
+    std::random_device rd;
+    std::seed_seq seeds{rd(), rd(), rd(), rd(), rd(), rd(), rd(), rd()};
+    std::mt19937 rng(seeds);
+
     std::vector<int> indices(file_names.size());
     std::iota(indices.begin(), indices.end(), 0);
-    std::shuffle(indices.begin(), indices.end(), std::mt19937{std::random_device{}()});
+    std::shuffle(indices.begin(), indices.end(), rng);
     std::size_t idx = 0;
 
     daemonize();
@@ -181,17 +188,21 @@ int main(int argc, const char * argv[]){
 
             if (backend == "awww"){
                 std::system(("awww img " + wallpapers_path).c_str());
+                log << "Started: awww with the wallpaper " << file_names[pick] << std::endl;
             }else if (backend == "swww"){
                 std::system(("swww img " + wallpapers_path).c_str());
+                log << "Started: swww with the wallpaper " << file_names[pick] << std::endl;
             }else if (backend == "hyprpaper"){
                 std::system(("hyprctl hyprpaper reload " + wallpapers_path).c_str());
+                log << "Started: hyprpaper with the wallpaper " << file_names[pick] << std::endl;
             }else if (backend == "waypaper"){
                 std::system(("waypaper --wallpaper " + wallpapers_path).c_str());
+                log << "Started: waypaper with the wallpaper " << file_names[pick] << std::endl;
             }
 
             idx++;
             if (idx >= indices.size()) {
-                std::shuffle(indices.begin(), indices.end(), std::mt19937{std::random_device{}()});
+                std::shuffle(indices.begin(), indices.end(), rng);
                 idx = 0;
             }
         }
