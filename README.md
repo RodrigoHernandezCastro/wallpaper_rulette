@@ -1,46 +1,56 @@
 # Wallpaper Rulette
 
-A little weight service that works in the background and change your wallpapers
+A lightweight system tray app that randomly changes your wallpaper at a configurable interval.
 
-## Main stuff
+## Features
 
-* **Adaptative:**: It has the ability to use swww, awww, waypaper or hyprpaper; Dependending on your own configuration. 
-* **Light weight**: It uses just the right amount of memory to work.
-* **Memory leak**: It has code to prevent the code to multiply himself to the infinite if you are not careful.
+* **System tray**: Lives in your system tray — no terminal needed
+* **Random wallpaper at startup**: Picks a random wallpaper immediately on launch
+* **Configurable**: Select directory, change frequency, and pick backend — all from the tray menu
+* **Multi-backend**: Supports swww, awww, waypaper, and hyprpaper
 
-## Dependencies and requierements
+## Dependencies
 
-The project is configured to be compiled using **CMake** and depends on the next libraries:
-
-* C++17 (o superior)
+* C++17 or later
+* GTK 3
+* libayatana-appindicator
 * nlohmann/json
 
 ## Compilation
 
-To compile the project from the source code using **CMake**, execute the next commands from the root of the repo:
-
-1. Generate the constructor files:
 ```bash
+# With Nix (recommended)
+nix develop
 cmake -S . -B build
-```
-
-2. Compile:
-```bash
 cmake --build build
+
+# Run
+./build/bin/wallpaper_rulette
 ```
 
-3. Execute the code:
 ```bash
-./build/bin/wallpaper_rulette 5 /home/randy/Imagenes/Wallpapers/ waypaper
+# Without Nix (ensure dependencies are installed)
+cmake -S . -B build
+cmake --build build
+
+# Run
+./build/bin/wallpaper_rulette
 ```
-The execution of the code have 4 parts.
-./build/bin/wallpaper_rulette <--- Our executable
 
-5 <--- The timer between wallpapers
+## Usage
 
-/home/randy/Imagenes/Wallpapers/ <--- The path of the folder with your wallpapers
+The app runs as a system tray icon. Right-click to access the menu:
 
-waypaper <--- Your backend
+| Menu Item | Description |
+|-----------|-------------|
+| **Change Now** | Immediately set a random wallpaper |
+| **Select Directory...** | Pick a folder with wallpaper images |
+| **Set Frequency...** | Set how often the wallpaper changes (in minutes) |
+| **Backend** ▸ | Choose swww, awww, hyprpaper, or waypaper |
+| **Quit** | Exit the application |
+
+On first run, the config is created at `$XDG_CONFIG_HOME/wallpaper_rulette/config.json`. The default directory is `~/Pictures`.
 
 ## Author
+
 [Rodrigo Hernandez](https://github.com/RodrigoHernandezCastro)

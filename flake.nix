@@ -28,10 +28,18 @@
         {
           default = pkgs.stdenv.mkDerivation {
             pname = "wallpaper_rulette";
-            version = "1.0.0";
+            version = "0.2.0";
             src = ./.;
-            nativeBuildInputs = with pkgs; [ cmake ];
-            buildInputs = with pkgs; [ nlohmann_json ];
+            nativeBuildInputs = with pkgs; [
+              cmake
+              pkg-config
+              wrapGAppsHook
+            ];
+            buildInputs = with pkgs; [
+              gtk3
+              libayatana-appindicator
+              nlohmann_json
+            ];
           };
         }
       );
@@ -52,12 +60,26 @@
                     clang-tools
                     cmake
                     pkg-config
+                    gtk3
+                    libayatana-appindicator
+                    gsettings-desktop-schemas
                     self.formatter.${system}
                   ]
                   ++ pkgs.lib.optionals (!stdenv.hostPlatform.isDarwin) [ gdb ];
                 buildInputs = with pkgs; [
                   nlohmann_json
                 ];
+                shellHook = ''
+                  for d in \
+                    ${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/gsettings-desktop-schemas-${pkgs.gsettings-desktop-schemas.version} \
+                    ${pkgs.gtk3}/share/gsettings-schemas/gtk+3-${pkgs.gtk3.version}
+                  do
+                    if [ -d "$d" ]; then
+                      export XDG_DATA_DIRS="$d''${XDG_DATA_DIRS:+:}$XDG_DATA_DIRS"
+                    fi
+                  done
+                  echo "GSettings schemas registered"
+                '';
               };
         }
       );
