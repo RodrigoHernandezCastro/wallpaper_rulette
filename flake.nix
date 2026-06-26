@@ -33,7 +33,7 @@
             nativeBuildInputs = with pkgs; [
               cmake
               pkg-config
-              wrapGAppsHook
+              wrapGAppsHook3
             ];
             buildInputs = with pkgs; [
               gtk3
